@@ -7,5 +7,5 @@ if not exist .venv (
 call .venv\Scripts\activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-streamlit run clusterizador_unidades_fiscales.py --server.address 0.0.0.0 --server.port 8501
+streamlit run app.py --server.address 0.0.0.0 --server.port 8501
 endlocal
