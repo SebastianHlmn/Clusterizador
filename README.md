@@ -1,6 +1,6 @@
-# Clusterizador de unidades fiscales — v0.1
+# Clusterizador de unidades fiscales — v0.2
 
-Primera versión del clusterizador para comparar unidades fiscales del sistema acusatorio a partir de datos Coirón/UNISA, conflictividad y dotación de fiscales/auxiliares.
+Clusterizador para comparar unidades fiscales del sistema acusatorio a partir de datos Coirón/UNISA, conflictividad y dotación de fiscales/auxiliares.
 
 ## Regla de conteo
 
@@ -20,6 +20,27 @@ La app permite comparar:
 3. Oficina / área.
 
 Y permite asignar los datos por unidad de **actuación** (recomendado para actividad/litigación), unidad **actual** o unidad de **ingreso**.
+
+## Selección de unidades
+
+Antes de clusterizar se puede elegir exactamente qué unidades participan. La selección se aplica antes del filtro de mínimo de casos. La pantalla informa cuántas unidades fueron seleccionadas y cuántas entran efectivamente al clustering luego de aplicar ese mínimo.
+
+Esto permite, por ejemplo, comparar sólo un conjunto de distritos, sólo determinadas unidades/sedes o excluir unidades que no sean comparables para una corrida específica.
+
+## Configuraciones guardadas
+
+La barra lateral permite guardar, cargar y eliminar configuraciones con nombre. Se guardan:
+
+- jerarquía y eje de asignación;
+- fechas de análisis;
+- unidades participantes;
+- familias e indicadores seleccionados;
+- escalado y transformación logarítmica;
+- algoritmo y mínimo de casos;
+- cantidad de clusters cuando corresponde;
+- parámetros de DBSCAN cuando corresponde.
+
+Las configuraciones se almacenan localmente en `configuraciones/clusterizador_configuraciones.json`. Ese archivo queda fuera de Git mediante `.gitignore`. No se guardan rutas de las bases dentro de las configuraciones.
 
 ## Familias de variables
 
@@ -60,7 +81,7 @@ Luego, desde otra máquina de la red, se accede con:
 
 El firewall de Windows debe permitir conexiones entrantes al puerto 8501.
 
-## Decisiones metodológicas de esta versión
+## Decisiones metodológicas
 
 1. Se usa una ventana temporal común para todas las unidades. Esto evita comparar como si fueran equivalentes períodos de exposición distintos desde la implementación.
 2. Si las dos fuentes parquet tienen cortes distintos, la app limita el máximo al último día común.
