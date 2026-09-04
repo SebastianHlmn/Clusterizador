@@ -15,7 +15,7 @@ from sklearn.metrics import silhouette_score
 import clusterizador_unidades_fiscales as core
 
 
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.2.1"
 BASE_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = BASE_DIR / "configuraciones"
 CONFIG_FILE = CONFIG_DIR / "clusterizador_configuraciones.json"
@@ -36,6 +36,30 @@ def write_saved_configs(configs: Dict[str, dict]) -> None:
     tmp = CONFIG_FILE.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(configs, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(CONFIG_FILE)
+
+
+def load_selected_config_callback() -> None:
+    name = st.session_state.get("saved_config_selector", "—")
+    configs = load_saved_configs()
+    if name in configs:
+        st.session_state["_pending_cluster_config"] = configs[name]
+
+
+def delete_selected_config_callback() -> None:
+    name = st.session_state.get("saved_config_selector", "—")
+    configs = load_saved_configs()
+    if name in configs:
+        configs.pop(name, None)
+        write_saved_configs(configs)
+    st.session_state["saved_config_selector"] = "—"
+
+
+def select_all_units_callback(units: Sequence[str]) -> None:
+    st.session_state["cfg_units"] = list(units)
+
+
+def select_no_units_callback() -> None:
+    st.session_state["cfg_units"] = []
 
 
 def safe_date(value: object, fallback: date, lower: date, upper: date) -> date:
@@ -103,15 +127,19 @@ def main() -> None:
         )
         ca, cb = st.columns(2)
         with ca:
-            if st.button("Cargar", disabled=selected_config_name == "—", use_container_width=True):
-                st.session_state["_pending_cluster_config"] = saved_configs[selected_config_name]
-                st.rerun()
+            st.button(
+                "Cargar",
+                disabled=selected_config_name == "—",
+                use_container_width=True,
+                on_click=load_selected_config_callback,
+            )
         with cb:
-            if st.button("Eliminar", disabled=selected_config_name == "—", use_container_width=True):
-                saved_configs.pop(selected_config_name, None)
-                write_saved_configs(saved_configs)
-                st.session_state.pop("saved_config_selector", None)
-                st.rerun()
+            st.button(
+                "Eliminar",
+                disabled=selected_config_name == "—",
+                use_container_width=True,
+                on_click=delete_selected_config_callback,
+            )
         st.caption("Se guardan parámetros del análisis, no las rutas de las bases.")
 
         st.header("Fuentes")
@@ -240,15 +268,20 @@ def main() -> None:
     with ub:
         st.write("")
         st.write("")
-        if st.button("Todas", use_container_width=True):
-            st.session_state["cfg_units"] = unit_options
-            st.rerun()
+        st.button(
+            "Todas",
+            use_container_width=True,
+            on_click=select_all_units_callback,
+            args=(unit_options,),
+        )
     with uc:
         st.write("")
         st.write("")
-        if st.button("Ninguna", use_container_width=True):
-            st.session_state["cfg_units"] = []
-            st.rerun()
+        st.button(
+            "Ninguna",
+            use_container_width=True,
+            on_click=select_no_units_callback,
+        )
 
     if not selected_units:
         st.info("Seleccioná al menos tres unidades para calcular clusters.")
