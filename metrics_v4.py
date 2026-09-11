@@ -64,11 +64,23 @@ def _system_clause(path_str: str, only_accusatory: bool) -> str:
 
 
 def _fiscal_unit_clause(axis: str, only_fiscal_units: bool) -> str:
+    """Restringe a la estructura propia del acusatorio.
+
+    En Coirón/UNISA, las estructuras territoriales del acusatorio se registran
+    como "Unidad Fiscal ..." y "Sede Fiscal Descentralizada ...". Las
+    "Fiscalía Federal ..." corresponden a la estructura del sistema mixto y no
+    deben usarse como criterio positivo del universo acusatorio.
+    """
     if not only_fiscal_units:
         return ""
     unit_col = core.qident(core.AXIS_COLS[axis]["unidad"])
     unit_norm = f"lower(trim(CAST({unit_col} AS VARCHAR)))"
-    return f" AND ({unit_norm} LIKE 'fiscalía%' OR {unit_norm} LIKE 'fiscalia%')"
+    return (
+        " AND ("
+        f"{unit_norm} LIKE 'unidad fiscal%' "
+        f"OR {unit_norm} LIKE 'sede fiscal descentralizada%'"
+        ")"
+    )
 
 
 def _excluded_org_clause(axis: str) -> str:
