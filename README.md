@@ -1,4 +1,4 @@
-# Clusterizador de unidades fiscales — v0.2
+# Clusterizador de unidades fiscales — v0.3
 
 Clusterizador para comparar unidades fiscales del sistema acusatorio a partir de datos Coirón/UNISA, conflictividad y dotación de fiscales/auxiliares.
 
@@ -21,11 +21,23 @@ La app permite comparar:
 
 Y permite asignar los datos por unidad de **actuación** (recomendado para actividad/litigación), unidad **actual** o unidad de **ingreso**.
 
-## Selección de unidades
+## Selección jerárquica de unidades
 
-Antes de clusterizar se puede elegir exactamente qué unidades participan. La selección se aplica antes del filtro de mínimo de casos. La pantalla informa cuántas unidades fueron seleccionadas y cuántas entran efectivamente al clustering luego de aplicar ese mínimo.
+La selección del universo se hace antes de calcular los indicadores.
 
-Esto permite, por ejemplo, comparar sólo un conjunto de distritos, sólo determinadas unidades/sedes o excluir unidades que no sean comparables para una corrida específica.
+- Si se compara por **Distrito**, se seleccionan los distritos participantes.
+- Si se compara por **Unidad / sede**, primero se seleccionan distritos y luego las unidades pertenecientes a esos distritos.
+- Si se compara por **Oficina / área**, se seleccionan distrito, unidad y finalmente oficina. La oficina se identifica como `Unidad / sede · Oficina` para evitar ambigüedades entre oficinas con igual nombre.
+
+Cada nivel tiene acciones **Todas** y **Ninguna**. El mínimo de casos se aplica después de construir la matriz del universo seleccionado.
+
+## Filtro de sistema acusatorio
+
+La opción **Solo unidades del sistema acusatorio** está activa por defecto.
+
+La regla es explícita: se consideran unidades acusatorias aquellas cuyo valor de `unidadfiscal_actuacion`, `unidadfiscal_actual` o `unidadfiscal_ingreso` —según el eje elegido— comienza con `Fiscalía`, aceptando la forma con o sin tilde y sin distinguir mayúsculas/minúsculas.
+
+El filtro se aplica **antes de la agregación**. Por lo tanto, cuando se compara a nivel Distrito, los casos, actuaciones, audiencias, hitos y conflictividad del distrito se calculan sólo con registros pertenecientes a esas unidades fiscales.
 
 ## Configuraciones guardadas
 
@@ -33,7 +45,8 @@ La barra lateral permite guardar, cargar y eliminar configuraciones con nombre. 
 
 - jerarquía y eje de asignación;
 - fechas de análisis;
-- unidades participantes;
+- filtro de unidades acusatorias;
+- distritos, unidades fiscales y oficinas seleccionadas;
 - familias e indicadores seleccionados;
 - escalado y transformación logarítmica;
 - algoritmo y mínimo de casos;
@@ -75,16 +88,15 @@ Los nombres/rutas se pueden cambiar desde la barra lateral.
 
 Doble clic en `run_windows.bat`. La primera vez crea `.venv`, instala dependencias y levanta Streamlit en el puerto 8501 escuchando en `0.0.0.0`.
 
-Luego, desde otra máquina de la red, se accede con:
+También se puede ejecutar desde el entorno `analisisconsultas` con:
 
-`http://IP_DE_LA_MAQUINA:8501`
-
-El firewall de Windows debe permitir conexiones entrantes al puerto 8501.
+`streamlit run app.py`
 
 ## Decisiones metodológicas
 
-1. Se usa una ventana temporal común para todas las unidades. Esto evita comparar como si fueran equivalentes períodos de exposición distintos desde la implementación.
+1. Se usa una ventana temporal común para todas las unidades.
 2. Si las dos fuentes parquet tienen cortes distintos, la app limita el máximo al último día común.
-3. Se conservan cantidades brutas y tasas. Para clusterizar, las variables se estandarizan; las cantidades pueden transformarse con `log1p` para reducir el peso de escalas extremadamente grandes sin perder la señal de volumen.
-4. El territorio queda fuera del conjunto de variables por defecto: sirve primero para describir/interpretar los clusters y puede activarse después.
-5. A nivel oficina/área, la app informa la cobertura del empalme con RRHH porque la nomenclatura de áreas puede requerir un diccionario explícito de equivalencias.
+3. Se conservan cantidades brutas y tasas. Para clusterizar, las variables se estandarizan; las cantidades pueden transformarse con `log1p`.
+4. El filtro de unidades acusatorias se realiza antes de agregar los indicadores.
+5. El territorio queda fuera del conjunto de variables por defecto y se utiliza inicialmente como descriptor.
+6. A nivel oficina/área, la app informa la cobertura del empalme con RRHH porque la nomenclatura de áreas puede requerir un diccionario explícito de equivalencias.
