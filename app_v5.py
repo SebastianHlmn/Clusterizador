@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-"""Corrección de interfaz sobre la v0.4.
+"""Capa de compatibilidad sobre la v0.4.
 
-La lógica de selección y clustering sigue en app_v4. Esta capa corrige la
-rotulación del filtro organizacional para reflejar la estructura real del
-acusatorio en Coirón/UNISA: Unidad Fiscal / Sede Fiscal Descentralizada.
+Corrige la rotulación del universo acusatorio y deja disponible en session_state
+la matriz analítica construida por la pantalla principal, para reutilizarla en
+el comparador de unidades similares sin volver a redefinir métricas.
 """
 
 import app_v4
 
 
-APP_VERSION = "0.4.1"
+APP_VERSION = "0.4.2"
 
 _original_checkbox = app_v4.st.checkbox
+if not hasattr(app_v4.core, "_clusterizador_merge_matrix_original"):
+    app_v4.core._clusterizador_merge_matrix_original = app_v4.core.merge_matrix
 
 
 def _checkbox_with_correct_accusatory_label(label, *args, **kwargs):
@@ -26,11 +28,23 @@ def _checkbox_with_correct_accusatory_label(label, *args, **kwargs):
     return _original_checkbox(label, *args, **kwargs)
 
 
+def _merge_matrix_and_capture(*args, **kwargs):
+    original = app_v4.core._clusterizador_merge_matrix_original
+    matrix = original(*args, **kwargs)
+    app_v4.st.session_state["_comparador_matrix"] = matrix.copy()
+    app_v4.st.session_state["_comparador_context"] = {
+        "jerarquia": app_v4.st.session_state.get("cfg_grain_label"),
+        "asignar_por": app_v4.st.session_state.get("cfg_axis"),
+        "desde": str(app_v4.st.session_state.get("cfg_start", "")),
+        "hasta": str(app_v4.st.session_state.get("cfg_end", "")),
+        "minimo_casos": int(app_v4.st.session_state.get("cfg_min_cases", 1) or 1),
+    }
+    return matrix
+
+
 def main() -> None:
-    # app_v4 mantiene toda la lógica de cascada; metrics_v4 contiene el criterio
-    # corregido. Sólo sustituimos la etiqueta heredada para no mostrar el criterio
-    # invertido en pantalla.
     app_v4.st.checkbox = _checkbox_with_correct_accusatory_label
+    app_v4.core.merge_matrix = _merge_matrix_and_capture
     app_v4.APP_VERSION = APP_VERSION
     app_v4.main()
 
