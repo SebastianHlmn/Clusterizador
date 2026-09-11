@@ -43,7 +43,9 @@ weights = dict(sim.PROFILE_WEIGHTS[profile])
 available = sim.available_families(work)
 
 with st.expander("Ajustar peso de las dimensiones", expanded=False):
-    st.caption("Los pesos se aplican por dimensión, no por cantidad de columnas. Así una familia con muchos indicadores no domina por sí sola.")
+    st.caption(
+        "Los pesos se aplican por dimensión, no por cantidad de columnas. Así una familia con muchos indicadores no domina por sí sola."
+    )
     cols = st.columns(3)
     for pos, family in enumerate(sim.FAMILY_SPECS):
         if family not in available:
@@ -60,7 +62,14 @@ with st.expander("Ajustar peso de las dimensiones", expanded=False):
 
 units = sorted(work["unidad"].dropna().astype(str).unique().tolist())
 reference = st.selectbox("Unidad de referencia", units)
-n_neighbors = st.slider("Cantidad de unidades comparables", 3, min(15, len(units) - 1), min(8, len(units) - 1))
+max_neighbors = min(15, len(units) - 1)
+default_neighbors = min(8, max_neighbors)
+n_neighbors = st.slider(
+    "Cantidad de unidades comparables",
+    min_value=1,
+    max_value=max_neighbors,
+    value=default_neighbors,
+)
 
 try:
     ranking, z, active_families = sim.rank_neighbors(work, reference, weights)
