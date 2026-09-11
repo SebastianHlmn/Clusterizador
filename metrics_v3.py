@@ -10,6 +10,15 @@ import streamlit as st
 import clusterizador_unidades_fiscales as core
 
 
+EXCLUDED_ORG_TERMS = (
+    "justicia nacional",
+    "procuraduría",
+    "procuraduria",
+    "casación",
+    "casacion",
+)
+
+
 def _sql_literal(value: object) -> str:
     return "'" + str(value).replace("'", "''") + "'"
 
@@ -29,6 +38,26 @@ def _accusatory_clause(axis: str, only_accusatory: bool) -> str:
     return f" AND ({unit_norm} LIKE 'fiscalía%' OR {unit_norm} LIKE 'fiscalia%')"
 
 
+def _excluded_org_clause(axis: str) -> str:
+    """Excluye estructuras que no deben participar del universo comparable.
+
+    La exclusión se aplica sobre distrito, unidad fiscal y oficina, con y sin
+    tildes para Procuraduría/Casación. Se aplica siempre, aun cuando se desactive
+    el filtro de unidades acusatorias.
+    """
+    cols = core.AXIS_COLS[axis]
+    expressions = [
+        f"lower(trim(CAST({core.qident(cols['distrito'])} AS VARCHAR)))",
+        f"lower(trim(CAST({core.qident(cols['unidad'])} AS VARCHAR)))",
+        f"lower(trim(CAST({core.qident(cols['oficina'])} AS VARCHAR)))",
+    ]
+    conditions = []
+    for expr in expressions:
+        for term in EXCLUDED_ORG_TERMS:
+            conditions.append(f"coalesce({expr}, '') NOT LIKE '%{term}%'")
+    return " AND " + " AND ".join(conditions)
+
+
 def _where_filters(
     *,
     axis: str,
@@ -44,6 +73,7 @@ def _where_filters(
         " AND IdCasoOriginal IS NOT NULL"
         f" AND coalesce({expr}, '') <> ''"
         + _accusatory_clause(axis, only_accusatory)
+        + _excluded_org_clause(axis)
         + _in_clause(expr, analysis_units)
     )
     return expr, clause
@@ -64,6 +94,7 @@ def hierarchy_options(
     unit = core.qident(cols["unidad"])
     office = core.qident(cols["oficina"])
     accusatory = _accusatory_clause(axis, only_accusatory)
+    excluded = _excluded_org_clause(axis)
     q = f"""
         SELECT DISTINCT
             trim(CAST({district} AS VARCHAR)) AS distrito,
@@ -75,6 +106,7 @@ def hierarchy_options(
           AND coalesce(trim(CAST({district} AS VARCHAR)), '') <> ''
           AND coalesce(trim(CAST({unit} AS VARCHAR)), '') <> ''
           {accusatory}
+          {excluded}
         ORDER BY 1, 2, 3
     """
     c = duckdb.connect(database=":memory:")
